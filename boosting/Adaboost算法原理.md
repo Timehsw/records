@@ -11,7 +11,8 @@ AdaBoost 算法的核心,样本加权.
 
 # AdaBoost算法推理
 
-AdaBoost算法将基分类器进行线性组合作为强分类器,同时给分类误差率较小的基分类器以大的权重,给分类误差率较大的基分类器以小的权重值;构建的线性组合
+AdaBoost算法将基分类器进行线性组合作为强分类器,
+同时给分类误差率较小的基分类器以大的权重,给分类误差率较大的基分类器以小的权重值;构建的线性组合
 ![](https://raw.githubusercontent.com/Timehsw/gitnote-images/master/img/20190304154104.png)
 
 
