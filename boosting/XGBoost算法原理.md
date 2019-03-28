@@ -5,4 +5,6 @@
  + XGBoost支持开发语言：Python、R、Java、Scala、C++等
 
  # 目标函数
- $$Obj(\theta)=L(\theta)+\Omega(\theta)$$
+ 
+ <img src="http://latex.codecogs.com/gif.latex? \\ Obj(\theta)=L(\theta)+\Omega(\theta)" />
+
