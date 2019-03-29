@@ -5,6 +5,16 @@
  + XGBoost支持开发语言：Python、R、Java、Scala、C++等
 
  # 目标函数
+ xgboost的目标函数也就是在GBDT的目标函数上加了一个惩罚项,使得xgboost算法的泛华性能也就更好了.
+ ![](https://raw.githubusercontent.com/Timehsw/gitnote-images/master/ml/xgboost/xgboost-object-function.png)
  
- <img src="http://latex.codecogs.com/gif.latex? \\ Obj(\theta)=L(\theta)+\Omega(\theta)" />
-
+ 有一张很经典的图展示了目标函数和惩罚项的关系.
+ 
+ ![](https://raw.githubusercontent.com/Timehsw/gitnote-images/master/ml/xgboost/learning-step-function.png)
+  
+  ## 回顾一下GBDT的目标函数
+  ![](https://raw.githubusercontent.com/Timehsw/gitnote-images/master/ml/xgboost/GBDT-object.png)
+  
+  ## 再看XGBoost的目标函数
+  
+  
