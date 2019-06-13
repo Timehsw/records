@@ -18,4 +18,3 @@ LPA的另一个极大的优点在于scalability，非常适合用来处理large 
 算法终止条件：它要求所有的node都满足:
 
  node的label一定是它的邻居label中出现次数最多的(或最多的之一)，这意味着，每个node的邻居中，和它处于同一个community的数量一定大于等于处于其它community的数量。
-
