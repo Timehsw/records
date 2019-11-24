@@ -52,3 +52,62 @@ $$PE_{(pos,2i)} = sin(pos / 10000^{2i/d_{\text{model}}}) \quad PE_{(pos,2i+1)} =
 
 上式中$pos$指的是句中字的位置, 取值范围是$[0, \ max \ sequence \ length)$, $i$指的是词向量的维度, 取值范围是$[0, \ embedding \ dimension)$, 上面有$sin$和$cos$一组公式, 也就是对应着$embedding \ dimension$维度的一组奇数和偶数的序号的维度, 例如$0, 1$一组, $2, 3$一组, 分别用上面的$sin$和$cos$函数做处理, 从而产生不同的周期性变化, 而位置嵌入在$embedding \ dimension$维度上随着维度序号增大, 周期变化会越来越慢, 而产生一种包含位置信息的纹理, 就像论文原文中第六页讲的, 位置嵌入函数的周期从$2 \pi$到$10000 * 2 \pi$变化, 而每一个位置在$embedding \ dimension$维度上都会得到不同周期的$sin$和$cos$函数的取值组合, 从而产生独一的纹理位置信息, 模型从而学到位置之间的依赖关系和自然语言的时序特性.   
 下面画一下位置嵌入, 可见纵向观察, 随着$embedding \ dimension$增大, 位置嵌入函数呈现不同的周期变化.
+
+## 2. $self \ attention \ mechanism$, **自注意力机制**;
+
+![](https://raw.githubusercontent.com/Timehsw/gitnote-images/master/dl/transformer/self-attention.jpg)
+
+### Attention Mask
+
+![](https://raw.githubusercontent.com/Timehsw/gitnote-images/master/dl/transformer/attention-mask.jpg)
+
+注意, 在上面$self \ attention$的计算过程中, 我们通常使用$mini \ batch$来计算, 也就是一次计算多句话, 也就是$X$的维度是$[batch \ size, \ sequence \ length]$, $sequence \ length$是句长, 而一个$mini \ batch$是由多个不等长的句子组成的, 我们就需要按照这个$mini \ batch$中最大的句长对剩余的句子进行补齐长度, 我们一般用$0$来进行填充, 这个过程叫做$padding$.   
+但这时在进行$softmax$的时候就会产生问题, 回顾$softmax$函数$\sigma (\mathbf {z} )_{i}={\frac {e^{z_{i}}}{\sum _{j=1}^{K}e^{z_{j}}}}$, $e^0$是1, 是有值的, 这样的话$softmax$中被$padding$的部分就参与了运算, 就等于是让无效的部分参与了运算, 会产生很大隐患, 这时就需要做一个$mask$让这些无效区域不参与运算, 我们一般给无效区域加一个很大的负数的偏置, 也就是:
+$$z_{illegal} = z_{illegal} + bias_{illegal}$$
+$$bias_{illegal} \to -\infty$$
+$$e^{z_{illegal}} \to 0 $$
+经过上式的$masking$我们使无效区域经过$softmax$计算之后还几乎为$0$, 这样就避免了无效区域参与计算.
+
+## 3. $Layer \ Normalization$和残差连接.
+
+1). **残差连接**:   
+我们在上一步得到了经过注意力矩阵加权之后的$V$, 也就是$Attention(Q, \ K, \ V)$, 我们对它进行一下转置, 使其和$X_{embedding}$的维度一致, 也就是$[batch \ size, \ sequence \ length, \ embedding \ dimension]$, 然后把他们加起来做残差连接, 直接进行元素相加, 因为他们的维度一致:   
+$$X_{embedding} + Attention(Q, \ K, \ V)$$
+在之后的运算里, 每经过一个模块的运算, 都要把运算之前的值和运算之后的值相加, 从而得到残差连接, 训练的时候可以使梯度直接走捷径反传到最初始层:
+$$X + SubLayer(X) \tag{eq. 5}$$
+2). $LayerNorm$:   
+$Layer Normalization$的作用是把神经网络中隐藏层归一为标准正态分布, 也就是$i.i.d$独立同分布, 以起到加快训练速度, 加速收敛的作用:
+$$\mu_{i}=\frac{1}{m} \sum^{m}_{i=1}x_{ij}$$
+上式中以矩阵的行$(row)$为单位求均值;
+$$\sigma^{2}_{j}=\frac{1}{m} \sum^{m}_{i=1}
+(x_{ij}-\mu_{j})^{2}$$
+上式中以矩阵的行$(row)$为单位求方差;
+$$LayerNorm(x)=\alpha \odot \frac{x_{ij}-\mu_{i}}
+{\sqrt{\sigma^{2}_{i}+\epsilon}} + \beta \tag{eq.6}$$
+然后用**每一行**的**每一个元素**减去**这行的均值**, 再除以**这行的标准差**, 从而得到归一化后的数值, $\epsilon$是为了防止除$0$;   
+之后引入两个可训练参数$\alpha, \ \beta$来弥补归一化的过程中损失掉的信息, 注意$\odot$表示元素相乘而不是点积, 我们一般初始化$\alpha$为全$1$, 而$\beta$为全$0$.
+
+## 4. $transformer \ encoder$整体结构.   
+
+经过上面3个步骤, 我们已经基本了解到来$transformer$编码器的主要构成部分, 我们下面用公式把一个$transformer \ block$的计算过程整理一下:    
+1). 字向量与位置编码:   
+$$X = EmbeddingLookup(X) + PositionalEncoding \tag{eq.2}$$
+$$X \in \mathbb{R}^{batch \ size  \ * \  seq. \ len. \  * \  embed. \ dim.} $$
+2). 自注意力机制:   
+$$Q = Linear(X) = XW_{Q}$$ 
+$$K = Linear(X) = XW_{K} \tag{eq.3}$$
+$$V = Linear(X) = XW_{V}$$
+$$X_{attention} = SelfAttention(Q, \ K, \ V) \tag{eq.4}$$
+3). 残差连接与$Layer \ Normalization$
+$$X_{attention} = X + X_{attention} \tag{eq. 5}$$
+$$X_{attention} = LayerNorm(X_{attention}) \tag{eq. 6}$$
+4). 下面进行$transformer \ block$结构图中的**第4部分**, 也就是$FeedForward$, 其实就是两层线性映射并用激活函数激活, 比如说$ReLU$:   
+$$X_{hidden} = Activate(Linear(Linear(X_{attention}))) \tag{eq. 7}$$
+5). 重复3).:
+$$X_{hidden} = X_{attention} + X_{hidden}$$
+$$X_{hidden} = LayerNorm(X_{hidden})$$
+$$X_{hidden} \in \mathbb{R}^{batch \ size  \ * \  seq. \ len. \  * \  embed. \ dim.} $$
+
+**小结:**   
+我们到现在位置已经讲完了transformer的编码器的部分, 了解到了transformer是怎样获得自然语言的位置信息的, 注意力机制是怎样的, 其实举个语言情感分类的例子, 我们已经知道, 经过自注意力机制, 一句话中的每个字都含有这句话中其他所有字的信息, 那么我们可不可以添加一个空白字符到句子最前面, 然后让句子中的所有信息向这个空白字符汇总, 然后再映射成想要分的类别呢? 这就是**BERT**, 我们下次会讲到.   
+在**BERT**的预训练中, 我们给每句话的句头加一个特殊字符, 然后句末再加一个特殊字符, 之后模型预训练完毕之后, 我们就可以用句头的特殊字符的$hidden \ state$完成一些分类任务了.
